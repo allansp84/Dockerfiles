@@ -1,0 +1,141 @@
+FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
+MAINTAINER Allan Pinto <allansp84@gmail.com>
+
+# -- installing opencv dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    checkinstall \
+    libjasper-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libtiff5 \
+    libtiff5-dev \
+    libtiff-tools \
+    libfreetype6-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libdc1394-22-dev \
+    libopenblas-dev \
+    libblitz0-dev \
+    libboost-all-dev \
+    libtbb2 \
+    libtbb-dev \
+    libhdf5-serial-dev \
+    libgtk2.0-dev \
+    libgtk2.0-0 \
+    libgtk2.0-bin \
+    libgtk2.0-common \
+    libcppnetlib-dev \
+    libpython-dev \
+    liblapacke-dev \
+    libgstreamer-plugins-base0.10-dev \
+    pkg-config \
+    giflib-dbg \
+    python-pip \
+    python-dev \
+    python-numpy \
+    python-urllib3 \
+    cmake \
+    unzip \
+    wget \
+    git \
+    htop \
+    vim
+
+# -- installing python 3.5
+# RUN apt-get purge -y python*
+RUN apt-get install -y \
+    python3.5 \
+    python3.5-dev \
+    python3.5-venv \
+    python3-pip \
+    python3-dev \
+    python3-numpy \
+    python3-urllib3 \
+    libpython3.5-dev
+
+# RUN ln -s /usr/bin/python3.5 /usr/bin/python
+# RUN ln -s /usr/bin/pip3 /usr/bin/pip
+
+# -- upgrates
+RUN pip install --upgrade pip 
+RUN pip3 install --upgrade pip 
+
+# -- general environment variable
+ENV HOME_DIR=/root
+ENV INSTALLERS_DIR=$HOME_DIR/installers
+ENV PREFIX_INSTALL=/usr/local
+
+# -- installing opencv-3.2.0
+ENV OPENCV_VERSION=3.2.0
+ENV OPENCV_FOLDER=$INSTALLERS_DIR/opencv-$OPENCV_VERSION
+ENV OPENCV_CONTRIB_FOLDER=$INSTALLERS_DIR/opencv_contrib-$OPENCV_VERSION
+ENV OPENCV_FILENAME=opencv-$OPENCV_VERSION.zip
+ENV OPENCV_CONTRIB_FILENAME=opencv_contrib-$OPENCV_VERSION.zip
+
+WORKDIR $INSTALLERS_DIR
+
+ADD https://github.com/opencv/opencv/archive/$OPENCV_VERSION/$OPENCV_FILENAME $INSTALLERS_DIR
+ADD https://github.com/opencv/opencv_contrib/archive/$OPENCV_VERSION/$OPENCV_CONTRIB_FILENAME $INSTALLERS_DIR
+
+RUN unzip $INSTALLERS_DIR/$OPENCV_FILENAME
+RUN unzip $INSTALLERS_DIR/$OPENCV_CONTRIB_FILENAME
+
+WORKDIR $OPENCV_FOLDER
+
+RUN mkdir -p release
+
+WORKDIR release
+
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=$PREFIX_INSTALL \
+    -D BUILD_DOCS=ON \
+    -D BUILD_EXAMPLES=ON \
+    -D OPENCV_EXTRA_MODULES_PATH=$OPENCV_CONTRIB_FOLDER/modules \
+    -D WITH_CUDA=ON \
+    -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs \
+    -D WITH_OPENMP=YES \
+    -D WITH_CUBLAS=YES \
+    -D BUILD_PYTHON_SUPPORT=ON \
+    -D BUILD_opencv_python2=OFF \
+    -D BUILD_opencv_python3=ON \
+    -D PYTHON_DEFAULT_EXECUTABLE=/usr/bin/python3 \
+    -D PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so \
+    -D PYTHON_INCLUDE_DIR=/usr/include/python3.5m/ \
+    -D WITH_1394=OFF \
+    ..
+
+RUN make -j"$(nproc)" && make install
+
+RUN python3 --version
+RUN python3 -c "import cv2; print(cv2.__version__)"
+
+#  -- installing FLANN Library
+WORKDIR $INSTALLERS_DIR
+RUN curl -SL https://github.com/mariusmuja/flann/archive/1.9.1.zip > flann-1.9.1.zip
+
+# --build FLANN Library
+RUN unzip flann-1.9.1.zip
+WORKDIR flann-1.9.1
+RUN mkdir -p release
+WORKDIR release
+
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=$PREFIX_INSTALL \
+    -D BUILD_CUDA_LIB=ON \
+    ..
+
+RUN make -j"$(nproc)" && make install
+
+WORKDIR $PREFIX_INSTALL/share/flann/python
+
+RUN python3 setup.py install
+
+RUN python3 -c "import pyflann; print(pyflann.__file__)"
+
+# -- cleaning up opencv and FLANN
+WORKDIR $HOME_DIR
+
+RUN rm -rf $INSTALLERS_DIR
