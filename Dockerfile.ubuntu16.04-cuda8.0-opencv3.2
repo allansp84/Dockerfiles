@@ -109,6 +109,9 @@ RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
 
 RUN make -j"$(nproc)" && make install
 
+RUN echo "/usr/local/include/opencv" > /etc/ld.so.conf.d/opencv.conf
+RUN ldconfig
+
 RUN python3 --version
 RUN python3 -c "import cv2; print(cv2.__version__)"
 
