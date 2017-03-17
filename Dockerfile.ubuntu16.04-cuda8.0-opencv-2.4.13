@@ -1,0 +1,114 @@
+FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
+MAINTAINER Allan Pinto <allansp84@gmail.com>
+
+# -- installing opencv dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    checkinstall \
+    libjasper-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libtiff5 \
+    libtiff5-dev \
+    libtiff-tools \
+    libfreetype6-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libdc1394-22-dev \
+    libopenblas-dev \
+    libblitz0-dev \
+    libboost-all-dev \
+    libtbb2 \
+    libtbb-dev \
+    libhdf5-serial-dev \
+    libgtk2.0-dev \
+    libgtk2.0-0 \
+    libgtk2.0-bin \
+    libgtk2.0-common \
+    libcppnetlib-dev \
+    libpython-dev \
+    liblapacke-dev \
+    libgstreamer-plugins-base0.10-dev \
+    pkg-config \
+    giflib-dbg \
+    python-pip \
+    python-dev \
+    python-numpy \
+    python-urllib3 \
+    cmake \
+    unzip \
+    wget \
+    git \
+    htop \
+    vim
+
+# -- installing python 3.5
+# RUN apt-get purge -y python*
+RUN apt-get install -y \
+    python3.5 \
+    python3.5-dev \
+    python3.5-venv \
+    python3-pip \
+    python3-dev \
+    python3-numpy \
+    python3-urllib3 \
+    libpython3.5-dev
+
+# RUN ln -s /usr/bin/python3.5 /usr/bin/python
+# RUN ln -s /usr/bin/pip3 /usr/bin/pip
+
+# -- upgrates
+RUN pip install --upgrade pip 
+RUN pip3 install --upgrade pip 
+
+# -- general environment variable
+ENV HOME_DIR=/root
+ENV INSTALLERS_DIR=$HOME_DIR/installers
+ENV PREFIX_INSTALL=/usr/local
+
+# -- installing opencv-2.4.13
+ENV OPENCV_VERSION=2.4.13
+ENV OPENCV_FOLDER=$INSTALLERS_DIR/opencv-$OPENCV_VERSION
+ENV OPENCV_FILENAME=opencv-$OPENCV_VERSION.zip
+
+WORKDIR $INSTALLERS_DIR
+
+ADD https://github.com/opencv/opencv/archive/$OPENCV_VERSION/$OPENCV_FILENAME $INSTALLERS_DIR
+
+RUN unzip $INSTALLERS_DIR/$OPENCV_FILENAME
+
+WORKDIR $OPENCV_FOLDER
+
+RUN mkdir -p release
+
+WORKDIR release
+
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=$PREFIX_INSTALL \
+    -D BUILD_DOCS=ON \
+    -D BUILD_EXAMPLES=ON \
+    -D BUILD_NEW_PYTHON_SUPPORT=ON \
+    -D WITH_CUDA=OFF \
+    -D CMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs \
+    -D WITH_OPENMP=YES \
+    -D WITH_CUBLAS=YES \
+    -D INSTALL_C_EXAMPLES=ON \
+    -D INSTALL_PYTHON_EXAMPLES=ON \
+    -D BUILD_EXAMPLES=ON \
+    -D WITH_1394=OFF \
+    ..
+
+RUN make -j"$(nproc)" && make install
+
+RUN echo "/usr/local/include/opencv" > /etc/ld.so.conf.d/opencv.conf
+RUN ldconfig
+
+RUN python --version
+RUN python -c "import cv2; print(cv2.__version__)"
+
+# -- cleaning up opencv and FLANN
+WORKDIR $HOME_DIR
+
+RUN rm -rf $INSTALLERS_DIR
