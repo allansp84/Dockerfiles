@@ -1,8 +1,0 @@
-Short Description
-Docker image based on Ubuntu 16.04 that contains the cuda-8, opencv-3.2 and flann-1.9 libraries.
-
-Full Description
-This Docker image contains the cuda-8.0, opencv-3.2 (with support to python-3.5) and flann-1.9.1 libraries installed upon the official docker image of Ubuntu 16.04.
-
-#### Supported tag and respective Dockerfile
-* [**`latest`**, `Dockerfile/Dockerfile.ubuntu16.04-cuda8.0-opencv-3.2`](https://github.com/allansp84/Dockerfiles/blob/master/Dockerfile.ubuntu16.04-cuda8.0-opencv-3.2)
