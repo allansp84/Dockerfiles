@@ -81,4 +81,14 @@ RUN \
     python3 -c "import pyflann; print(pyflann.__file__)" && \
     rm -rf /root/flann-1.9.1 ~/.cache
 
-WORKDIR /root
+RUN \
+    groupadd --gid 1000 recod && \
+    useradd --create-home --shell /bin/bash --uid 10034 --gid 1000 allansp && \
+    echo "allansp:allansp" | chpasswd && \
+    adduser allansp sudo && \
+    su -l allansp
+
+USER allansp
+
+WORKDIR /home/allansp
+  
